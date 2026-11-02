@@ -69,6 +69,8 @@ th:first-child,td:first-child{text-align:left}
 .note{font-size:13px;color:var(--text-secondary)}
 .saved{position:fixed;top:12px;right:12px;background:var(--accent);color:var(--accent-ink);padding:4px 10px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;z-index:9}
 .hidden{display:none}
+.ex{padding:10px 0;border-top:1px solid var(--line)}.ex:first-of-type{border-top:0}.ex .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.ex .h b{font-size:15px}.ex .h span{font-size:12px;color:var(--text-secondary);white-space:nowrap}.ex p{margin:4px 0 8px;font-size:13px;color:var(--text-secondary)}.ex a{display:inline-block;text-decoration:none;font-size:14px;font-weight:600;color:var(--accent)}.tag{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
+
 </style>
 </head>
 <body>
@@ -96,6 +98,7 @@ th:first-child,td:first-child{text-align:left}
   </div>
   <div class="card">
     <h2>Rutina del fisio <span id="tocaHoy" class="note"></span></h2>
+    <p class="note" style="margin:-4px 0 6px">Cómo se hace cada uno: pestaña <b>Ejercicios</b>.</p>
     <div class="row"><label for="r_cal">Calentamiento<small>Pasar el pie por encima del step, ~30 por pierna</small></label><input type="checkbox" id="r_cal"></div>
     <div class="row"><label for="r_cad">Cadera<small>Goma lateral y atrás, tumbado de lado, puente</small></label><input type="checkbox" id="r_cad"></div>
     <div class="row"><label for="r_eq">Equilibrio y saltos<small>Bloque, caminar atrás, saltos (parar si duele por fuera del tobillo)</small></label><input type="checkbox" id="r_eq"></div>
@@ -161,6 +164,15 @@ th:first-child,td:first-child{text-align:left}
   </div>
 </section>
 
+<!-- EJERCICIOS -->
+<section id="v-ej" class="hidden">
+  <div class="card">
+    <h2>Cómo se hace cada ejercicio</h2>
+    <p class="note">Los vídeos son ejemplos de YouTube para recordar el movimiento. Mandan siempre las correcciones de tu fisio.</p>
+    <div id="exList"></div>
+  </div>
+</section>
+
 <!-- AJUSTES -->
 <section id="v-aj" class="hidden">
   <div class="card">
@@ -189,6 +201,7 @@ th:first-child,td:first-child{text-align:left}
 
 <nav>
   <button data-v="hoy" class="on">Hoy</button>
+  <button data-v="ej">Ejercicios</button>
   <button data-v="prog">Progreso</button>
   <button data-v="aj">Ajustes</button>
 </nav>
@@ -337,8 +350,11 @@ $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRea
 // navegación
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['hoy','prog','aj'].forEach(v=>$('v-'+v).classList.toggle('hidden',v!==b.dataset.v));
+  ['hoy','ej','prog','aj'].forEach(v=>$('v-'+v).classList.toggle('hidden',v!==b.dataset.v));
   if(b.dataset.v==='prog')renderProg();if(b.dataset.v==='aj')renderAj();if(b.dataset.v==='hoy')renderHoy();window.scrollTo(0,0)});
+const EX=[{"b": "Calentamiento", "n": "Pasar el pie por encima del step", "s": "~30 por pierna", "t": "Despacio, adelante y atrás, aguantando en una pierna. Abdomen dentro.", "u": "https://www.youtube.com/results?search_query=step%20over%20equilibrio%20una%20pierna%20ejercicio"}, {"b": "Cadera", "n": "Abducción de pie con mini-goma en los tobillos", "s": "3 × 10", "t": "Rodilla de apoyo un poco doblada. Sube, aguanta 3 s, baja lento. Cadera nivelada, punta del pie al frente.", "u": "https://www.youtube.com/results?search_query=abducci%C3%B3n%20de%20cadera%20de%20pie%20con%20mini%20banda%20en%20tobillos"}, {"b": "Cadera", "n": "Patada atrás con mini-goma", "s": "3 × 10", "t": "Pierna recta «como un palo», recorrido corto, sin arquear la zona lumbar. Aprieta el glúteo arriba.", "u": "https://www.youtube.com/results?search_query=patada%20de%20gl%C3%BAteo%20de%20pie%20con%20mini%20banda%20pierna%20recta"}, {"b": "Cadera", "n": "Goma en la pierna de apoyo: hacia fuera y al frente", "s": "3 × 10", "t": "La pierna de apoyo estabiliza: tobillo firme, rodilla sin irse hacia dentro.", "u": "https://www.youtube.com/results?search_query=ejercicio%20estabilidad%20pierna%20de%20apoyo%20mini%20banda%20abducci%C3%B3n%20y%20flexi%C3%B3n%20de%20cadera"}, {"b": "Cadera", "n": "Tumbado de lado: círculos pequeños", "s": "10 + 10 por lado", "t": "Pierna de arriba un poco elevada, círculos pequeños y lentos. La cadera no se va hacia atrás.", "u": "https://www.youtube.com/results?search_query=c%C3%ADrculos%20de%20pierna%20tumbado%20de%20lado%20pilates"}, {"b": "Cadera", "n": "Almeja (clamshell)", "s": "3 × 10", "t": "Talones juntos, piernas semiflexionadas. Separa solo las rodillas sin que gire la cadera. Con o sin goma.", "u": "https://www.youtube.com/results?search_query=ejercicio%20almeja%20clamshell%20con%20banda%20el%C3%A1stica"}, {"b": "Cadera", "n": "Abducción tumbado de lado con goma", "s": "3 × 10", "t": "La pierna de arriba no se adelanta. Punta del pie al frente. Sube y baja muy lento.", "u": "https://www.youtube.com/results?search_query=abducci%C3%B3n%20de%20cadera%20tumbado%20de%20lado%20con%20banda%20el%C3%A1stica"}, {"b": "Cadera", "n": "Puente vértebra a vértebra", "s": "2×8 → 2×10 → 2×12", "t": "Sube y baja vértebra a vértebra, aguanta 3 s arriba sin arquear. Rodillas alineadas con la cadera.", "u": "https://www.youtube.com/results?search_query=puente%20de%20gl%C3%BAteo%20v%C3%A9rtebra%20a%20v%C3%A9rtebra%20pilates"}, {"b": "Equilibrio", "n": "Bloque: subir, quedarse, paso, atrás · caminar hacia atrás", "s": "3 series", "t": "Pasa POR ENCIMA del bloque, no lo esquives. Abdomen dentro para no irte de lado.", "u": "https://www.youtube.com/results?search_query=ejercicios%20propiocepci%C3%B3n%20tobillo%20equilibrio%20una%20pierna%20step"}, {"b": "Saltos", "n": "Saltos: 2 piernas · al step · 1 pierna", "s": "10 · 10 · 5 por pierna", "t": "Aterriza suave. Al step subes saltando y bajas caminando. Rodilla izquierda hacia fuera. Si duele por fuera del tobillo, ese día no saltes.", "u": "https://www.youtube.com/results?search_query=saltos%20al%20caj%C3%B3n%20bajo%20principiantes%20aterrizaje%20suave%20rodilla%20alineada"}, {"b": "Abdomen", "n": "Dead bug", "s": "3 × 20 (10 por lado)", "t": "Zona lumbar pegada al suelo, brazo y pierna contrarios a la vez. Respira, nunca aguantes el aire.", "u": "https://www.youtube.com/results?search_query=dead%20bug%20ejercicio%20t%C3%A9cnica%20correcta"}, {"b": "Abdomen", "n": "Plancha frontal y lateral", "s": "3 × 30 s · lateral ~15 s", "t": "Mejor sobre antebrazos (por la muñeca). Escápulas un poco juntas, que no caiga la cadera.", "u": "https://www.youtube.com/results?search_query=plancha%20frontal%20y%20lateral%20sobre%20antebrazos%20t%C3%A9cnica%20correcta"}, {"b": "Abdomen", "n": "Rotación con goma o polea", "s": "3 × 10", "t": "Gira el tronco, no tires con los brazos. Escápulas juntas, vuelta lo más lenta posible.", "u": "https://www.youtube.com/results?search_query=ejercicio%20le%C3%B1ador%20woodchop%20con%20banda%20el%C3%A1stica%20rotaci%C3%B3n%20de%20tronco"}, {"b": "Espalda", "n": "Aperturas de un brazo con goma", "s": "8 por brazo", "t": "Hombros abajo, escápulas atrás. Abre un solo brazo, el otro quieto. «Quema» bien; dolor, para.", "u": "https://www.youtube.com/results?search_query=apertura%20con%20banda%20el%C3%A1stica%20un%20brazo%20retracci%C3%B3n%20escapular"}];
+(function(){const L=document.getElementById('exList');EX.forEach(e=>{const d=document.createElement('div');d.className='ex';
+d.innerHTML=`<div class="tag">${esc(e.b)}</div><div class="h"><b>${esc(e.n)}</b><span>${esc(e.s)}</span></div><p>${esc(e.t)}</p><a href="${e.u}" target="_blank" rel="noopener">▶ Ver vídeo de ejemplo</a>`;L.appendChild(d)})})();
 renderHoy();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 })();

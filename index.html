@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1baf7a">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Salud">
+<title>Mi seguimiento de salud</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f4f1; --surface-1:#fcfcfb; --line:#e3e2dc;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#7a7974;
+  --accent:#1a7f5a; --accent-ink:#ffffff;
+  --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a;
+  --good:#1a7f5a; --warn:#b26b00;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#111110; --surface-1:#1a1a19; --line:#33332f;
+    --text-primary:#f0efec; --text-secondary:#c3c2b7; --text-muted:#9a9990;
+    --accent:#2fa67a; --accent-ink:#0b0b0b;
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+header{position:sticky;top:0;z-index:5;background:var(--surface-1);border-bottom:1px solid var(--line);padding:12px 16px}
+header h1{margin:0;font-size:18px}
+header .sub{color:var(--text-secondary);font-size:13px}
+main{max-width:640px;margin:0 auto;padding:12px}
+.card{background:var(--surface-1);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row label{flex:1}
+.row small{display:block;color:var(--text-muted);font-size:12px}
+input[type=checkbox]{width:26px;height:26px;accent-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number],input[type=text],input[type=date],select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+textarea{min-height:70px}
+.pain{padding:6px 0}
+.pain .top{display:flex;justify-content:space-between;align-items:baseline}
+.pain .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;min-width:2ch;text-align:right}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.btn{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.sec{background:var(--bg);color:var(--text-primary);border:1px solid var(--line)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface-1);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;font:inherit;font-size:14px;background:none;border:0;color:var(--text-secondary);padding:12px 4px}
+nav button.on{color:var(--accent);font-weight:700}
+.datebar{display:flex;gap:8px;align-items:center}
+.datebar button{flex:0 0 44px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.tile b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--text-secondary)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin:4px 0 8px}
+svg text{fill:var(--text-secondary);font-size:11px}
+.tip{position:absolute;pointer-events:none;background:var(--surface-1);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.15);display:none;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:center}
+th:first-child,td:first-child{text-align:left}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.supp-edit{display:grid;grid-template-columns:2fr 1fr 1.2fr 36px;gap:6px;margin-bottom:6px}
+.supp-edit button{border:0;background:none;color:var(--text-muted);font-size:20px}
+.note{font-size:13px;color:var(--text-secondary)}
+.saved{position:fixed;top:12px;right:12px;background:var(--accent);color:var(--accent-ink);padding:4px 10px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;z-index:9}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mi seguimiento de salud</h1>
+  <div class="sub">Tendones · glucosa · suplementos — los datos se guardan solo en este móvil</div>
+</header>
+<div class="saved" id="saved">Guardado</div>
+
+<main>
+<!-- HOY -->
+<section id="v-hoy">
+  <div class="card">
+    <div class="datebar">
+      <button class="btn sec" id="prev" aria-label="Día anterior">‹</button>
+      <input type="date" id="fecha">
+      <button class="btn sec" id="next" aria-label="Día siguiente">›</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Rutina del fisio <span id="tocaHoy" class="note"></span></h2>
+    <div class="row"><label for="r_cal">Calentamiento<small>Pasar el pie por encima del step, ~30 por pierna</small></label><input type="checkbox" id="r_cal"></div>
+    <div class="row"><label for="r_cad">Cadera<small>Goma lateral y atrás, tumbado de lado, puente</small></label><input type="checkbox" id="r_cad"></div>
+    <div class="row"><label for="r_eq">Equilibrio y saltos<small>Bloque, caminar atrás, saltos (parar si duele por fuera del tobillo)</small></label><input type="checkbox" id="r_eq"></div>
+    <div class="row"><label for="r_abd">Abdomen y espalda<small>Dead bug, planchas, rotación, aperturas</small></label><input type="checkbox" id="r_abd"></div>
+    <div class="row"><label for="r_fisio">Sesión con el fisio hoy</label><input type="checkbox" id="r_fisio"></div>
+  </div>
+
+  <div class="card">
+    <h2>Dolor (0 = nada · 10 = máximo)</h2>
+    <div class="pain"><div class="top"><span><i class="dot" style="background:var(--series-1)"></i>Tobillo derecho</span><span class="val" id="v_tob">–</span></div><input type="range" min="0" max="10" step="1" id="p_tob"></div>
+    <div class="pain"><div class="top"><span><i class="dot" style="background:var(--series-2)"></i>Rodilla derecha</span><span class="val" id="v_rod">–</span></div><input type="range" min="0" max="10" step="1" id="p_rod"></div>
+    <div class="pain"><div class="top"><span><i class="dot" style="background:var(--series-3)"></i>Muñeca derecha</span><span class="val" id="v_mun">–</span></div><input type="range" min="0" max="10" step="1" id="p_mun"></div>
+    <p class="note">Regla del fisio: hasta 3/10 durante el ejercicio está bien; al día siguiente no debes estar peor. Toca la barra para apuntar el valor.</p>
+  </div>
+
+  <div class="card">
+    <h2>Suplementos</h2>
+    <div id="suppList"></div>
+    <p class="note" id="suppEmpty">Añade tus suplementos en «Ajustes».</p>
+  </div>
+
+  <div class="card">
+    <h2>Glucosa y hábitos</h2>
+    <div class="row"><label for="h_com">Caminé 10-15 min después de comer</label><input type="checkbox" id="h_com"></div>
+    <div class="row"><label for="h_cen">Caminé 10-15 min después de cenar</label><input type="checkbox" id="h_cen"></div>
+    <div class="row"><label for="h_cena">Cené temprano y ligero</label><input type="checkbox" id="h_cena"></div>
+    <div class="row"><label for="g_val">Glucosa (mg/dL, opcional)<small>Si usas sensor o glucómetro</small></label><input type="number" id="g_val" inputmode="numeric" style="max-width:110px"></div>
+    <div class="row"><label for="g_mom">Momento</label><select id="g_mom" style="max-width:170px"><option value="">—</option><option>En ayunas</option><option>2 h después de comer</option><option>Antes de dormir</option></select></div>
+  </div>
+
+  <div class="card">
+    <h2>Notas</h2>
+    <textarea id="notas" placeholder="Bodas, cómo dormiste, algo raro…"></textarea>
+  </div>
+</section>
+
+<!-- PROGRESO -->
+<section id="v-prog" class="hidden">
+  <div class="card">
+    <h2>Esta semana</h2>
+    <div class="tiles">
+      <div class="tile"><b id="t_rut">0/3</b><span>días de rutina</span></div>
+      <div class="tile"><b id="t_cam">0</b><span>caminatas</span></div>
+      <div class="tile"><b id="t_sup">–</b><span>suplementos</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="position:relative">
+    <h2>Dolor · últimos 30 días</h2>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--series-1)"></i>Tobillo</span>
+      <span><i class="dot" style="background:var(--series-2)"></i>Rodilla</span>
+      <span><i class="dot" style="background:var(--series-3)"></i>Muñeca</span>
+    </div>
+    <div id="chart"></div>
+    <div class="tip" id="tip"></div>
+    <p class="note" id="chartEmpty">Cuando apuntes el dolor unos días, aquí verás cómo evoluciona.</p>
+  </div>
+
+  <div class="card">
+    <h2>Suplementos · últimos 7 días</h2>
+    <div id="suppStats"></div>
+  </div>
+
+  <div class="card">
+    <h2>Últimos 14 días</h2>
+    <div style="overflow-x:auto"><table id="tabla"></table></div>
+  </div>
+</section>
+
+<!-- AJUSTES -->
+<section id="v-aj" class="hidden">
+  <div class="card">
+    <h2>Mis suplementos</h2>
+    <div id="suppEdit"></div>
+    <div class="btns"><button class="btn sec" id="addSupp">+ Añadir</button><button class="btn" id="saveSupp">Guardar lista</button></div>
+    <p class="note">Nombre, dosis y momento (p. ej. «Vitamina D3 · 2.000 UI · desayuno»). Nada con hierro: tu saturación de hierro sale alta.</p>
+  </div>
+  <div class="card">
+    <h2>Días de rutina</h2>
+    <div class="btns" id="diasRut"></div>
+    <p class="note">Los días marcados salen como «toca hoy».</p>
+  </div>
+  <div class="card">
+    <h2>Compartir con el grupo Salud</h2>
+    <p class="note">Copia el resumen de la semana y pégalo en el grupo de WhatsApp para que lo guarde en tu historial.</p>
+    <div class="btns"><button class="btn" id="copyWeek">Copiar resumen semanal</button></div>
+  </div>
+  <div class="card">
+    <h2>Copia de seguridad</h2>
+    <p class="note">Los datos viven solo en este navegador. Exporta de vez en cuando por si cambias de móvil o borras el navegador.</p>
+    <div class="btns"><button class="btn sec" id="exp">Exportar</button><label class="btn sec">Importar<input type="file" id="imp" accept="application/json" class="hidden"></label></div>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button data-v="hoy" class="on">Hoy</button>
+  <button data-v="prog">Progreso</button>
+  <button data-v="aj">Ajustes</button>
+</nav>
+
+<script>
+(function(){
+const KEY='salud_daniel_v1';
+const DEF={days:{},supps:[
+  {id:'d3',name:'Vitamina D3',dose:'2.000 UI',when:'Desayuno'},
+  {id:'col',name:'Colágeno o gelatina',dose:'10-15 g',when:'30-60 min antes de los ejercicios'}
+],rutDays:[1,3,5]};
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
+if(!S)S=JSON.parse(JSON.stringify(DEF));
+S.days=S.days||{};S.supps=S.supps||[];S.rutDays=S.rutDays||[1,3,5];
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));const el=document.getElementById('saved');el.style.opacity=1;clearTimeout(save.t);save.t=setTimeout(()=>el.style.opacity=0,700)};
+const $=id=>document.getElementById(id);
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const parse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const DN=['dom','lun','mar','mié','jue','vie','sáb'];
+const fmt=s=>{const d=parse(s);return DN[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)};
+let cur=iso(new Date());
+const day=s=>S.days[s]||(S.days[s]={});
+
+const CHK=['r_cal','r_cad','r_eq','r_abd','r_fisio','h_com','h_cen','h_cena'];
+const PAIN=[['p_tob','v_tob'],['p_rod','v_rod'],['p_mun','v_mun']];
+const rutDone=d=>d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd);
+
+function renderHoy(){
+  $('fecha').value=cur;
+  const d=S.days[cur]||{};
+  CHK.forEach(k=>$(k).checked=!!d[k]);
+  PAIN.forEach(([p,v])=>{const has=d[p]!=null;$(p).value=has?d[p]:0;$(v).textContent=has?d[p]:'–';$(p).style.opacity=has?1:.45});
+  $('g_val').value=d.g_val??'';$('g_mom').value=d.g_mom||'';$('notas').value=d.notas||'';
+  const wd=parse(cur).getDay();
+  $('tocaHoy').textContent=S.rutDays.includes(wd)?'· toca hoy':'';
+  const L=$('suppList');L.innerHTML='';
+  $('suppEmpty').classList.toggle('hidden',S.supps.length>0);
+  S.supps.forEach(s=>{
+    const r=document.createElement('div');r.className='row';
+    const id='s_'+s.id;
+    r.innerHTML=`<label for="${id}">${esc(s.name)}<small>${esc([s.dose,s.when].filter(Boolean).join(' · '))}</small></label><input type="checkbox" id="${id}">`;
+    L.appendChild(r);
+    const cb=r.querySelector('input');cb.checked=!!(d.supp&&d.supp[s.id]);
+    cb.onchange=()=>{const x=day(cur);x.supp=x.supp||{};x.supp[s.id]=cb.checked;save()};
+  });
+}
+function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+CHK.forEach(k=>$(k).onchange=()=>{day(cur)[k]=$(k).checked;save()});
+PAIN.forEach(([p,v])=>{$(p).oninput=()=>{day(cur)[p]=+$(p).value;$(v).textContent=$(p).value;$(p).style.opacity=1;save()}});
+$('g_val').onchange=()=>{const x=day(cur);x.g_val=$('g_val').value===''?null:+$('g_val').value;save()};
+$('g_mom').onchange=()=>{day(cur).g_mom=$('g_mom').value;save()};
+$('notas').oninput=()=>{day(cur).notas=$('notas').value;save()};
+$('fecha').onchange=()=>{if($('fecha').value){cur=$('fecha').value;renderHoy()}};
+$('prev').onclick=()=>{cur=addDays(cur,-1);renderHoy()};
+$('next').onclick=()=>{cur=addDays(cur,1);renderHoy()};
+
+function weekStart(s){const d=parse(s);const k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return iso(d)}
+function renderProg(){
+  const today=iso(new Date());
+  const ws=weekStart(today);let rut=0,cam=0,sTot=0,sOk=0;
+  for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0)}
+    S.supps.forEach(x=>{sTot++;if(d&&d.supp&&d.supp[x.id])sOk++})}
+  $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_cam').textContent=cam;
+  $('t_sup').textContent=sTot?Math.round(100*sOk/sTot)+'%':'–';
+  // suplementos 7 días
+  const SS=$('suppStats');SS.innerHTML='';
+  S.supps.forEach(x=>{let n=0;for(let i=0;i<7;i++){const d=S.days[addDays(today,-i)];if(d&&d.supp&&d.supp[x.id])n++}
+    const r=document.createElement('div');r.style.margin='8px 0';
+    r.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(x.name)}</span><span>${n}/7</span></div><div class="bar"><i style="width:${n/7*100}%"></i></div>`;SS.appendChild(r)});
+  if(!S.supps.length)SS.innerHTML='<p class="note">Sin suplementos en la lista.</p>';
+  drawChart(today);
+  // tabla
+  let h='<tr><th>Día</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
+  for(let i=0;i<14;i++){const s=addDays(today,-i);const d=S.days[s]||{};
+    const sup=S.supps.length?S.supps.filter(x=>d.supp&&d.supp[x.id]).length+'/'+S.supps.length:'–';
+    h+=`<tr><td>${fmt(s)}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
+  $('tabla').innerHTML=h;
+}
+function drawChart(today){
+  const W=Math.min(600,document.querySelector('main').clientWidth-30),H=200,m={l:26,r:52,t:10,b:24};
+  const days=[];for(let i=29;i>=0;i--)days.push(addDays(today,-i));
+  const ser=[['p_tob','Tobillo','--series-1'],['p_rod','Rodilla','--series-2'],['p_mun','Muñeca','--series-3']];
+  const has=days.some(s=>S.days[s]&&ser.some(([k])=>S.days[s][k]!=null));
+  $('chartEmpty').classList.toggle('hidden',has);
+  const x=i=>m.l+i*(W-m.l-m.r)/29, y=v=>m.t+(10-v)*(H-m.t-m.b)/10;
+  let g='';
+  [0,3,5,10].forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v===3?'stroke-dasharray="4 4"':''}/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`});
+  g+=`<text x="${m.l+4}" y="${y(3)-4}" style="font-size:10px">límite del fisio (3)</text>`;
+  [0,10,20,29].forEach(i=>g+=`<text x="${x(i)}" y="${H-6}" text-anchor="middle">${fmt(days[i]).split(' ')[1]}</text>`);
+  const ends=[];
+  ser.forEach(([k,name,c])=>{
+    let path='',pen=false,last=null;
+    days.forEach((s,i)=>{const v=S.days[s]&&S.days[s][k];if(v==null){pen=false;return}
+      path+=(pen?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1);pen=true;last={i,v}});
+    if(path)g+=`<path d="${path}" fill="none" stroke="var(${c})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    days.forEach((s,i)=>{const v=S.days[s]&&S.days[s][k];if(v!=null)g+=`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(${c})" stroke="var(--surface-1)" stroke-width="2"/>`});
+    if(last)ends.push({name,c,yy:y(last.v),xx:x(last.i)});
+  });
+  ends.sort((a,b)=>a.yy-b.yy);for(let i=1;i<ends.length;i++)if(ends[i].yy-ends[i-1].yy<12)ends[i].yy=ends[i-1].yy+12;
+  ends.forEach(e=>g+=`<text x="${W-m.r+6}" y="${e.yy+4}" style="fill:var(--text-primary)">${e.name}</text>`);
+  g+=`<line id="xh" x1="0" x2="0" y1="${m.t}" y2="${H-m.b}" stroke="var(--text-muted)" stroke-width="1" style="display:none"/>`;
+  g+=`<rect id="hit" x="${m.l}" y="0" width="${W-m.l-m.r}" height="${H}" fill="transparent"/>`;
+  $('chart').innerHTML=`<svg width="${W}" height="${H}" role="img" aria-label="Dolor de tobillo, rodilla y muñeca en los últimos 30 días">${g}</svg>`;
+  const hit=document.getElementById('hit'),xh=document.getElementById('xh'),tip=$('tip');
+  const show=ev=>{const r=hit.getBoundingClientRect();const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+    const i=Math.max(0,Math.min(29,Math.round(px/(r.width)*29)));const s=days[i];const d=S.days[s]||{};
+    xh.setAttribute('x1',x(i));xh.setAttribute('x2',x(i));xh.style.display='';
+    tip.innerHTML=`<b>${fmt(s)}</b><br>`+ser.map(([k,n,c])=>`<i class="dot" style="background:var(${c})"></i>${n}: ${d[k]??'—'}`).join('<br>');
+    tip.style.display='block';tip.style.left=Math.min(x(i)+20,W-110)+'px';tip.style.top='70px'};
+  hit.addEventListener('mousemove',show);hit.addEventListener('touchstart',show,{passive:true});hit.addEventListener('touchmove',show,{passive:true});
+  hit.addEventListener('mouseleave',()=>{tip.style.display='none';xh.style.display='none'});
+}
+
+// Ajustes
+function renderAj(){
+  const E=$('suppEdit');E.innerHTML='';
+  S.supps.forEach((s,i)=>addEditRow(s));
+  const D=$('diasRut');D.innerHTML='';
+  [1,2,3,4,5,6,0].forEach(n=>{const b=document.createElement('button');b.className='btn'+(S.rutDays.includes(n)?'':' sec');b.textContent=DN[n];
+    b.onclick=()=>{S.rutDays=S.rutDays.includes(n)?S.rutDays.filter(x=>x!==n):[...S.rutDays,n];save();renderAj()};D.appendChild(b)});
+}
+function addEditRow(s){
+  const r=document.createElement('div');r.className='supp-edit';r.dataset.id=s.id||('s'+Date.now()+Math.floor(Math.random()*1000));
+  r.innerHTML=`<input type="text" placeholder="Nombre" value="${esc(s.name)}"><input type="text" placeholder="Dosis" value="${esc(s.dose)}"><input type="text" placeholder="Momento" value="${esc(s.when)}"><button aria-label="Quitar">×</button>`;
+  r.querySelector('button').onclick=()=>r.remove();$('suppEdit').appendChild(r);
+}
+$('addSupp').onclick=()=>addEditRow({});
+$('saveSupp').onclick=()=>{S.supps=[...document.querySelectorAll('#suppEdit .supp-edit')].map(r=>{const v=r.querySelectorAll('input');return{id:r.dataset.id,name:v[0].value.trim(),dose:v[1].value.trim(),when:v[2].value.trim()}}).filter(s=>s.name);save();renderAj()};
+$('copyWeek').onclick=async()=>{
+  const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,cam=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
+  for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
+    for(const k in pains)if(d[k]!=null)pains[k].push(d[k]);S.supps.forEach(x=>{if(d.supp&&d.supp[x.id])sup[x.name]=(sup[x.name]||0)+1})}
+  const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+' (máx '+Math.max(...a)+')':'sin datos';
+  lines.push('1. Rutina: '+rut+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,
+    '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/7').join(', ')||'ninguno'));
+  const gl=[];for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(d&&d.g_val)gl.push(fmt(s)+' '+d.g_val+(d.g_mom?' ('+d.g_mom+')':''))}
+  if(gl.length)lines.push('5. Glucosa: '+gl.join('; '));
+  const txt=lines.join('\n');
+  try{await navigator.clipboard.writeText(txt);alert('Copiado. Pégalo en el grupo Salud.')}catch(e){prompt('Copia este texto:',txt)}
+};
+$('exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='seguimiento_salud_'+iso(new Date())+'.json';a.click()};
+$('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.days)throw 0;S=o;save();renderHoy();renderAj();alert('Datos importados.')}catch(_){alert('Ese archivo no es una copia válida.')}};r.readAsText(f)};
+
+// navegación
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  ['hoy','prog','aj'].forEach(v=>$('v-'+v).classList.toggle('hidden',v!==b.dataset.v));
+  if(b.dataset.v==='prog')renderProg();if(b.dataset.v==='aj')renderAj();if(b.dataset.v==='hoy')renderHoy();window.scrollTo(0,0)});
+renderHoy();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
+})();
+</script>
+</body>
+</html>

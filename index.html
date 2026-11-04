@@ -52,7 +52,7 @@ nav button{flex:1;font:inherit;font-size:14px;background:none;border:0;color:var
 nav button.on{color:var(--accent);font-weight:700}
 .datebar{display:flex;gap:8px;align-items:center}
 .datebar button{flex:0 0 44px}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .tile{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
 .tile b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
 .tile span{font-size:12px;color:var(--text-secondary)}
@@ -90,6 +90,11 @@ th:first-child,td:first-child{text-align:left}
       <input type="date" id="fecha">
       <button class="btn sec" id="next" aria-label="Día siguiente">›</button>
     </div>
+  </div>
+
+  <div class="card">
+    <h2>Al despertar</h2>
+    <div class="row"><label for="h_med">Meditación<small>40 minutos, lo primero de la mañana</small></label><input type="checkbox" id="h_med"></div>
   </div>
 
   <div class="card">
@@ -134,6 +139,7 @@ th:first-child,td:first-child{text-align:left}
     <h2>Esta semana</h2>
     <div class="tiles">
       <div class="tile"><b id="t_rut">0/3</b><span>días de rutina</span></div>
+      <div class="tile"><b id="t_med">0/7</b><span>meditación</span></div>
       <div class="tile"><b id="t_cam">0</b><span>caminatas</span></div>
       <div class="tile"><b id="t_sup">–</b><span>suplementos</span></div>
     </div>
@@ -225,7 +231,7 @@ const fmt=s=>{const d=parse(s);return DN[d.getDay()]+' '+d.getDate()+'/'+(d.getM
 let cur=iso(new Date());
 const day=s=>S.days[s]||(S.days[s]={});
 
-const CHK=['r_fisio','h_com','h_cen','h_cena'];
+const CHK=['h_med','r_fisio','h_com','h_cen','h_cena'];
 const PAIN=[['p_tob','v_tob'],['p_rod','v_rod'],['p_mun','v_mun']];
 const rutDone=d=>!!(d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd||(d.ex&&Object.values(d.ex).some(Boolean))));
 
@@ -269,10 +275,10 @@ $('next').onclick=()=>{cur=addDays(cur,1);renderHoy()};
 function weekStart(s){const d=parse(s);const k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return iso(d)}
 function renderProg(){
   const today=iso(new Date());
-  const ws=weekStart(today);let rut=0,cam=0,sTot=0,sOk=0;
-  for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0)}
+  const ws=weekStart(today);let rut=0,cam=0,med=0,sTot=0,sOk=0;
+  for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0);if(d.h_med)med++}
     S.supps.forEach(x=>{sTot++;if(d&&d.supp&&d.supp[x.id])sOk++})}
-  $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_cam').textContent=cam;
+  $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_cam').textContent=cam;$('t_med').textContent=med+'/7';
   $('t_sup').textContent=sTot?Math.round(100*sOk/sTot)+'%':'–';
   // suplementos 7 días
   const SS=$('suppStats');SS.innerHTML='';
@@ -282,10 +288,10 @@ function renderProg(){
   if(!S.supps.length)SS.innerHTML='<p class="note">Sin suplementos en la lista.</p>';
   drawChart(today);
   // tabla
-  let h='<tr><th>Día</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
+  let h='<tr><th>Día</th><th>Med.</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
   for(let i=0;i<14;i++){const s=addDays(today,-i);const d=S.days[s]||{};
     const sup=S.supps.length?S.supps.filter(x=>d.supp&&d.supp[x.id]).length+'/'+S.supps.length:'–';
-    h+=`<tr><td>${fmt(s)}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
+    h+=`<tr><td>${fmt(s)}</td><td>${d.h_med?'✓':''}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
   $('tabla').innerHTML=h;
 }
 function drawChart(today){
@@ -339,11 +345,11 @@ function addEditRow(s){
 $('addSupp').onclick=()=>addEditRow({});
 $('saveSupp').onclick=()=>{S.supps=[...document.querySelectorAll('#suppEdit .supp-edit')].map(r=>{const v=r.querySelectorAll('input');return{id:r.dataset.id,name:v[0].value.trim(),dose:v[1].value.trim(),when:v[2].value.trim()}}).filter(s=>s.name);save();renderAj()};
 $('copyWeek').onclick=async()=>{
-  const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,cam=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
-  for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
+  const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,cam=0,med=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
+  for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;if(d.h_med)med++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
     for(const k in pains)if(d[k]!=null)pains[k].push(d[k]);S.supps.forEach(x=>{if(d.supp&&d.supp[x.id])sup[x.name]=(sup[x.name]||0)+1})}
   const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+' (máx '+Math.max(...a)+')':'sin datos';
-  lines.push('1. Rutina: '+rut+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,
+  lines.push('1. Rutina: '+rut+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,'3b. Meditación: '+med+'/7 días',
     '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/7').join(', ')||'ninguno'));
   const gl=[];for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(d&&d.g_val)gl.push(fmt(s)+' '+d.g_val+(d.g_mom?' ('+d.g_mom+')':''))}
   if(gl.length)lines.push('5. Glucosa: '+gl.join('; '));

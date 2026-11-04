@@ -227,6 +227,8 @@ if((S.suppV||0)<2){const base=[
   {id:'col',name:'Colágeno o gelatina',dose:'10-15 g',when:'30-60 min antes de los ejercicios'}];
   const ids=base.map(x=>x.id);S.supps=base.concat(S.supps.filter(x=>!ids.includes(x.id)&&!/magnesio/i.test(x.name)));S.suppV=2;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+if((S.suppV||0)<3){if(!S.supps.some(x=>/c[úu]rcuma/i.test(x.name)))S.supps.push({id:'cur',name:'Cúrcuma con jengibre y pimienta',dose:'La del bote',when:'Con comida'});S.suppV=3;
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));const el=document.getElementById('saved');el.style.opacity=1;clearTimeout(save.t);save.t=setTimeout(()=>el.style.opacity=0,700)};
 const $=id=>document.getElementById(id);
 const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};

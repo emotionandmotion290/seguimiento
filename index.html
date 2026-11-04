@@ -70,6 +70,8 @@ th:first-child,td:first-child{text-align:left}
 .saved{position:fixed;top:12px;right:12px;background:var(--accent);color:var(--accent-ink);padding:4px 10px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;z-index:9}
 .hidden{display:none}
 .ex{padding:10px 0;border-top:1px solid var(--line)}.ex:first-of-type{border-top:0}.ex .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.ex .h b{font-size:15px}.ex .h span{font-size:12px;color:var(--text-secondary);white-space:nowrap}.ex p{margin:4px 0 8px;font-size:13px;color:var(--text-secondary)}.ex a{display:inline-block;text-decoration:none;font-size:14px;font-weight:600;color:var(--accent)}.play{flex:0 0 40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--bg);border:1px solid var(--line);color:var(--accent);font-size:16px}
+.play.nb{font:inherit;font-size:16px;color:var(--text-secondary)}.play.nb.has{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.exnote{min-height:56px;margin:0 0 8px;font-size:14px}
 .tag{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
 
 </style>
@@ -104,7 +106,7 @@ th:first-child,td:first-child{text-align:left}
   </div>
   <div class="card">
     <h2>Rutina del fisio <span id="tocaHoy" class="note"></span></h2>
-    <p class="note" style="margin:-4px 0 6px">Marca cada ejercicio al hacerlo. ▶ abre un vídeo de ejemplo.</p>
+    <p class="note" style="margin:-4px 0 6px">Marca cada ejercicio al hacerlo. ✎ para escribir una observación, ▶ para ver un vídeo de ejemplo.</p>
     <div id="rutList"></div>
     <div class="row"><label for="r_fisio">Sesión con el fisio hoy</label><input type="checkbox" id="r_fisio"></div>
   </div>
@@ -160,6 +162,11 @@ th:first-child,td:first-child{text-align:left}
   <div class="card">
     <h2>Suplementos · últimos 7 días</h2>
     <div id="suppStats"></div>
+  </div>
+
+  <div class="card">
+    <h2>Observaciones · últimos 30 días</h2>
+    <div id="obsList"></div>
   </div>
 
   <div class="card">
@@ -255,9 +262,13 @@ function renderHoy(){
   EX.forEach((e,i)=>{
     if(e.b!==lastB){const t=document.createElement('div');t.className='tag';t.style.margin='10px 0 2px';t.textContent=e.b;R.appendChild(t);lastB=e.b}
     const r=document.createElement('div');r.className='row';const id='ex_'+i;
-    r.innerHTML=`<label for="${id}">${esc(e.n)}<small>${esc(e.s)}</small></label><a class="play" href="${e.u}" target="_blank" rel="noopener" aria-label="Ver vídeo de ${esc(e.n)}">▶</a><input type="checkbox" id="${id}">`;
+    const txt=(d.exn&&d.exn[e.k])||'';
+    r.innerHTML=`<label for="${id}">${esc(e.n)}<small>${esc(e.s)}</small></label><button class="play nb${txt?' has':''}" aria-label="Observación de ${esc(e.n)}">✎</button><a class="play" href="${e.u}" target="_blank" rel="noopener" aria-label="Ver vídeo de ${esc(e.n)}">▶</a><input type="checkbox" id="${id}">`;
     R.appendChild(r);const cb=r.querySelector('input');cb.checked=!!(d.ex&&d.ex[e.k]);
     cb.onchange=()=>{const x=day(cur);x.ex=x.ex||{};x.ex[e.k]=cb.checked;save()};
+    const ta=document.createElement('textarea');ta.className='exnote'+(txt?'':' hidden');ta.placeholder='Observación: qué notaste, dónde duele, qué pierna…';ta.value=txt;R.appendChild(ta);
+    const nb=r.querySelector('.nb');nb.onclick=()=>{ta.classList.toggle('hidden');if(!ta.classList.contains('hidden'))ta.focus()};
+    ta.oninput=()=>{const x=day(cur);x.exn=x.exn||{};x.exn[e.k]=ta.value;nb.classList.toggle('has',!!ta.value.trim());save()};
   });
   const L=$('suppList');L.innerHTML='';
   $('suppEmpty').classList.toggle('hidden',S.supps.length>0);
@@ -295,6 +306,7 @@ function renderProg(){
     r.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(x.name)}</span><span>${n}/7</span></div><div class="bar"><i style="width:${n/7*100}%"></i></div>`;SS.appendChild(r)});
   if(!S.supps.length)SS.innerHTML='<p class="note">Sin suplementos en la lista.</p>';
   drawChart(today);
+  const O=$('obsList');const obs=allObs(today,30);O.innerHTML=obs.length?obs.map(o=>`<div class="ex"><div class="tag">${fmt(o.s)} · ${esc(o.n)}</div><p style="margin:2px 0 0">${esc(o.t)}</p></div>`).join(''):'<p class="note">Aún no hay observaciones. Pulsa ✎ al lado de un ejercicio para escribir una.</p>';
   // tabla
   let h='<tr><th>Día</th><th>Med.</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
   for(let i=0;i<14;i++){const s=addDays(today,-i);const d=S.days[s]||{};
@@ -302,6 +314,8 @@ function renderProg(){
     h+=`<tr><td>${fmt(s)}</td><td>${d.h_med?'✓':''}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
   $('tabla').innerHTML=h;
 }
+function allObs(today,n){const r=[];for(let i=0;i<n;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;
+  EX.forEach(e=>{const t=d.exn&&d.exn[e.k];if(t&&t.trim())r.push({s,n:e.n,t:t.trim()})});if(d.notas&&d.notas.trim())r.push({s,n:'Nota del día',t:d.notas.trim()})}return r}
 function drawChart(today){
   const W=Math.min(600,document.querySelector('main').clientWidth-30),H=200,m={l:26,r:52,t:10,b:24};
   const days=[];for(let i=29;i>=0;i--)days.push(addDays(today,-i));
@@ -361,6 +375,7 @@ $('copyWeek').onclick=async()=>{
     '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/7').join(', ')||'ninguno'));
   const gl=[];for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(d&&d.g_val)gl.push(fmt(s)+' '+d.g_val+(d.g_mom?' ('+d.g_mom+')':''))}
   if(gl.length)lines.push('5. Glucosa: '+gl.join('; '));
+  const ob=allObs(today,7);if(ob.length)lines.push('6. Observaciones:',...ob.map(o=>'- '+fmt(o.s)+' · '+o.n+': '+o.t));
   const txt=lines.join('\n');
   try{await navigator.clipboard.writeText(txt);alert('Copiado. Pégalo en el grupo Salud.')}catch(e){prompt('Copia este texto:',txt)}
 };

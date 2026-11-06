@@ -234,7 +234,9 @@ if((S.suppV||0)<2){const base=[
   {id:'col',name:'Colágeno o gelatina',dose:'10-15 g',when:'30-60 min antes de los ejercicios'}];
   const ids=base.map(x=>x.id);S.supps=base.concat(S.supps.filter(x=>!ids.includes(x.id)&&!/magnesio/i.test(x.name)));S.suppV=2;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-if((S.suppV||0)<3){if(!S.supps.some(x=>/c[úu]rcuma/i.test(x.name)))S.supps.push({id:'cur',name:'Cúrcuma con jengibre y pimienta',dose:'La del bote',when:'Con comida'});S.suppV=3;
+if(!S.curV){S.curV=1;if((S.suppV||0)<3&&!S.supps.some(x=>/c[úu]rcuma/i.test(x.name)))S.supps.push({id:'cur',name:'Cúrcuma con jengibre y pimienta',dose:'La del bote',when:'Con comida'});
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+if((S.suppV||0)<4){const v=S.supps.find(x=>x.id==='d3');if(v){v.each=3;v.when='Desayuno'}S.suppV=4;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));const el=document.getElementById('saved');el.style.opacity=1;clearTimeout(save.t);save.t=setTimeout(()=>el.style.opacity=0,700)};
 const $=id=>document.getElementById(id);
@@ -250,6 +252,8 @@ const CHK=['h_med','r_fisio','h_com','h_cen','h_cena'];
 const PAIN=[['p_tob','v_tob'],['p_rod','v_rod'],['p_mun','v_mun']];
 const rutDone=d=>!!(d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd||(d.ex&&Object.values(d.ex).some(Boolean))));
 
+function lastTaken(id,before){for(let i=1;i<=30;i++){const s=addDays(before,-i);const d=S.days[s];if(d&&d.supp&&d.supp[id])return i}return null}
+function dueSupp(x,s){if(!x.each)return true;const l=lastTaken(x.id,s);return l===null||l>=x.each}
 function renderHoy(){
   $('fecha').value=cur;
   const d=S.days[cur]||{};
@@ -275,7 +279,10 @@ function renderHoy(){
   S.supps.forEach(s=>{
     const r=document.createElement('div');r.className='row';
     const id='s_'+s.id;
-    r.innerHTML=`<label for="${id}">${esc(s.name)}<small>${esc([s.dose,s.when].filter(Boolean).join(' · '))}</small></label><input type="checkbox" id="${id}">`;
+    const due=dueSupp(s,cur),taken=!!(d.supp&&d.supp[s.id]);
+    const freq=s.each?(due?'Cada '+s.each+' días · toca hoy':'Cada '+s.each+' días · hoy no toca'):'';
+    if(s.each&&!due&&!taken)r.style.opacity=.45;
+    r.innerHTML=`<label for="${id}">${esc(s.name)}<small>${esc([s.dose,s.when,freq].filter(Boolean).join(' · '))}</small></label><input type="checkbox" id="${id}">`;
     L.appendChild(r);
     const cb=r.querySelector('input');cb.checked=!!(d.supp&&d.supp[s.id]);
     cb.onchange=()=>{const x=day(cur);x.supp=x.supp||{};x.supp[s.id]=cb.checked;save()};
@@ -296,14 +303,14 @@ function renderProg(){
   const today=iso(new Date());
   const ws=weekStart(today);let rut=0,cam=0,med=0,sTot=0,sOk=0;
   for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0);if(d.h_med)med++}
-    S.supps.forEach(x=>{sTot++;if(d&&d.supp&&d.supp[x.id])sOk++})}
+    S.supps.forEach(x=>{const tk=!!(d&&d.supp&&d.supp[x.id]);if(!x.each||tk||dueSupp(x,s))sTot++;if(tk)sOk++})}
   $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_cam').textContent=cam;$('t_med').textContent=med+'/7';
   $('t_sup').textContent=sTot?Math.round(100*sOk/sTot)+'%':'–';
   // suplementos 7 días
   const SS=$('suppStats');SS.innerHTML='';
   S.supps.forEach(x=>{let n=0;for(let i=0;i<7;i++){const d=S.days[addDays(today,-i)];if(d&&d.supp&&d.supp[x.id])n++}
     const r=document.createElement('div');r.style.margin='8px 0';
-    r.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(x.name)}</span><span>${n}/7</span></div><div class="bar"><i style="width:${n/7*100}%"></i></div>`;SS.appendChild(r)});
+    r.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(x.name)}</span><span>${n}/${x.each?Math.ceil(7/x.each):7}</span></div><div class="bar"><i style="width:${Math.min(100,n/(x.each?Math.ceil(7/x.each):7)*100)}%"></i></div>`;SS.appendChild(r)});
   if(!S.supps.length)SS.innerHTML='<p class="note">Sin suplementos en la lista.</p>';
   drawChart(today);
   const O=$('obsList');const obs=allObs(today,30);O.innerHTML=obs.length?obs.map(o=>`<div class="ex"><div class="tag">${fmt(o.s)} · ${esc(o.n)}</div><p style="margin:2px 0 0">${esc(o.t)}</p></div>`).join(''):'<p class="note">Aún no hay observaciones. Pulsa ✎ al lado de un ejercicio para escribir una.</p>';
@@ -365,14 +372,14 @@ function addEditRow(s){
   r.querySelector('button').onclick=()=>r.remove();$('suppEdit').appendChild(r);
 }
 $('addSupp').onclick=()=>addEditRow({});
-$('saveSupp').onclick=()=>{S.supps=[...document.querySelectorAll('#suppEdit .supp-edit')].map(r=>{const v=r.querySelectorAll('input');return{id:r.dataset.id,name:v[0].value.trim(),dose:v[1].value.trim(),when:v[2].value.trim()}}).filter(s=>s.name);save();renderAj()};
+$('saveSupp').onclick=()=>{S.supps=[...document.querySelectorAll('#suppEdit .supp-edit')].map(r=>{const v=r.querySelectorAll('input');const o=S.supps.find(x=>x.id===r.dataset.id);const n={id:r.dataset.id,name:v[0].value.trim(),dose:v[1].value.trim(),when:v[2].value.trim()};if(o&&o.each)n.each=o.each;return n}).filter(s=>s.name);save();renderAj()};
 $('copyWeek').onclick=async()=>{
   const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,cam=0,med=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
   for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;if(d.h_med)med++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
     for(const k in pains)if(d[k]!=null)pains[k].push(d[k]);S.supps.forEach(x=>{if(d.supp&&d.supp[x.id])sup[x.name]=(sup[x.name]||0)+1})}
   const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+' (máx '+Math.max(...a)+')':'sin datos';
   lines.push('1. Rutina: '+rut+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,'3b. Meditación: '+med+'/7 días',
-    '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/7').join(', ')||'ninguno'));
+    '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/'+(x.each?Math.ceil(7/x.each):7)).join(', ')||'ninguno'));
   const gl=[];for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(d&&d.g_val)gl.push(fmt(s)+' '+d.g_val+(d.g_mom?' ('+d.g_mom+')':''))}
   if(gl.length)lines.push('5. Glucosa: '+gl.join('; '));
   const ob=allObs(today,7);if(ob.length)lines.push('6. Observaciones:',...ob.map(o=>'- '+fmt(o.s)+' · '+o.n+': '+o.t));

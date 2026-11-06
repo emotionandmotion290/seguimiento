@@ -87,6 +87,13 @@ th:first-child,td:first-child{text-align:left}
 <main>
 <!-- HOY -->
 <section id="v-hoy">
+  <div class="card" id="actCard">
+    <h2>Activar mis vídeos y envíos</h2>
+    <p class="note">Pega aquí el código que te mandé por WhatsApp. Solo hace falta una vez.</p>
+    <textarea id="actCode" placeholder="Pega el código"></textarea>
+    <div class="btns"><button class="btn" id="actBtn">Activar</button></div>
+  </div>
+
   <div class="card">
     <div class="datebar">
       <button class="btn sec" id="prev" aria-label="Día anterior">‹</button>
@@ -239,7 +246,14 @@ if(!S.curV){S.curV=1;if((S.suppV||0)<3&&!S.supps.some(x=>/c[úu]rcuma/i.test(x.n
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 if((S.suppV||0)<4){const v=S.supps.find(x=>x.id==='d3');if(v){v.each=3;v.when='Desayuno'}S.suppV=4;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-try{const m=location.hash.match(/^#v=(.+)$/);if(m){S.vlink=atob(m[1].replace(/-/g,'+').replace(/_/g,'/'));localStorage.setItem(KEY,JSON.stringify(S));history.replaceState(null,'',location.pathname);setTimeout(()=>alert('Listo: los botones ▶ ya abren tus vídeos del fisio.'),300)}}catch(e){}
+function activar(code){const o=JSON.parse(atob(code.trim().replace(/-/g,'+').replace(/_/g,'/')));if(!o.v||!o.t)throw 0;S.vlink=o.v;S.topic=o.t;localStorage.setItem(KEY,JSON.stringify(S))}
+try{const m=location.hash.match(/^#a=(.+)$/);if(m){activar(m[1]);history.replaceState(null,'',location.pathname)}}catch(e){}
+const PUB='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzXujb3xN+ERQ7HO4jHtUWeNdBgwTFaaKXnY2SsjxcESqzO8Z/CPOT/uG5IFT9V7YKzpGJ9r2x5j4Ew+nAP9i75F9BoMsOV5ygIaX773fLVbSEGufEWqZ4U8cplK2u+qlv2ep7LJA+pyVWncmvUL08HViYHgtO2TsgTLuL8R/FoX2WwOiVhnZ979o/3Qq0w0ty6gyUy7wSBJ/kTpy1l30WNE6EmoVx3clbPCfs23Zs1cv61JZ4ySM4JfzVwny5Q3mZrR159pxsWn1ash3nkpf36oTn8dB1/17nkxH+i45vqQwCHK/AAEJmxJ33T7M+2FIdbPEeiIzNaR5T3izsnarPQIDAQAB';
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+async function cifra(txt){const pk=await crypto.subtle.importKey('spki',Uint8Array.from(atob(PUB),c=>c.charCodeAt(0)),{name:'RSA-OAEP',hash:'SHA-256'},false,['encrypt']);
+  const k=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt']);const i=crypto.getRandomValues(new Uint8Array(12));
+  const c=await crypto.subtle.encrypt({name:'AES-GCM',iv:i},k,new TextEncoder().encode(txt));const raw=await crypto.subtle.exportKey('raw',k);
+  return JSON.stringify({k:b64(await crypto.subtle.encrypt({name:'RSA-OAEP'},pk,raw)),i:b64(i),c:b64(c)})}
 const VF={cal_step:'01_calentamiento_step',abd_pie:'02_abduccion_de_pie_goma',patada:'03_patada_atras_3_correccion',apoyo:'04_goma_pierna_de_apoyo',circulos:'05_tumbado_lado_circulos_y_almeja_1',almeja:'05_tumbado_lado_circulos_y_almeja_2',abd_lado:'06_abduccion_tumbado_goma_1',puente:'07_puente_3_series',equilibrio:'08_equilibrio_step_2',saltos:'09_saltos_2_series',deadbug:'10_dead_bug_2_series',plancha:'11_planchas',rotacion:'12_rotacion_goma',aperturas:'13_aperturas_brazo'};
 const vurl=e=>(S.vlink&&VF[e.k])?S.vlink+'&preview='+encodeURIComponent(VF[e.k]+'.mp4'):e.u;
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));const el=document.getElementById('saved');el.style.opacity=1;clearTimeout(save.t);save.t=setTimeout(()=>el.style.opacity=0,700)};
@@ -259,6 +273,7 @@ const rutDone=d=>!!(d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd||(d.ex&&Object.values(
 function lastTaken(id,before){for(let i=1;i<=30;i++){const s=addDays(before,-i);const d=S.days[s];if(d&&d.supp&&d.supp[id])return i}return null}
 function dueSupp(x,s){if(!x.each)return true;const l=lastTaken(x.id,s);return l===null||l>=x.each}
 function renderHoy(){
+  $('actCard').classList.toggle('hidden',!!(S.vlink&&S.topic));
   $('fecha').value=cur;
   const d=S.days[cur]||{};
   CHK.forEach(k=>$(k).checked=!!d[k]);
@@ -300,6 +315,7 @@ PAIN.forEach(([p,v])=>{$(p).oninput=()=>{day(cur)[p]=+$(p).value;$(v).textConten
 $('g_val').onchange=()=>{const x=day(cur);x.g_val=$('g_val').value===''?null:+$('g_val').value;save()};
 $('g_mom').onchange=()=>{day(cur).g_mom=$('g_mom').value;save()};
 $('notas').oninput=()=>{day(cur).notas=$('notas').value;save()};
+$('actBtn').onclick=()=>{try{activar($('actCode').value);renderHoy();renderEx();alert('Listo: ya tienes tus vídeos y el envío directo.')}catch(e){alert('Ese código no es válido. Cópialo entero.')}};
 $('fecha').onchange=()=>{if($('fecha').value){cur=$('fecha').value;renderHoy()}};
 $('prev').onclick=()=>{cur=addDays(cur,-1);renderHoy()};
 $('next').onclick=()=>{cur=addDays(cur,1);renderHoy()};
@@ -321,7 +337,7 @@ function renderProg(){
   drawChart(today);
   const O=$('obsList');const obs=allObs(today,30);O.innerHTML=obs.length?obs.map((o,i)=>`<div class="ex"><div class="tag">${fmt(o.s)} · ${esc(o.n)}</div><p style="margin:2px 0 6px">${esc(o.t)}</p><button class="btn sec exsend" data-i="${i}">Enviar al grupo Salud</button></div>`).join('')+'<div class="btns" style="margin-top:10px"><button class="btn" id="sendAll">Enviar todas</button></div>':'<p class="note">Aún no hay observaciones. Pulsa ✎ al lado de un ejercicio para escribir una.</p>';
   O.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>sendObs(obsText(obs[+b.dataset.i])));
-  const sa=$('sendAll');if(sa)sa.onclick=()=>sendObs(obs.map(obsText).join('\n\n'));
+  const sa=$('sendAll');if(sa)sa.onclick=()=>sendObs(obs.map(obsText));
   // tabla
   let h='<tr><th>Día</th><th>Med.</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
   for(let i=0;i<14;i++){const s=addDays(today,-i);const d=S.days[s]||{};
@@ -332,7 +348,10 @@ function renderProg(){
 function obsText(o){const d=S.days[o.s]||{};const e=EX.find(x=>x.n===o.n);
   const dolor=['p_tob','p_rod','p_mun'].map((k,i)=>d[k]!=null?['tobillo','rodilla','muñeca'][i]+' '+d[k]:null).filter(Boolean).join(', ');
   return 'Observación desde la app de seguimiento\nFecha: '+fmt(o.s)+'\n'+(e?'Ejercicio: '+e.n+' ('+e.b+', '+e.s+')'+(d.ex&&d.ex[e.k]?', hecho ese día':'')+'\n':'Nota del día\n')+'Comentario: '+o.t+(dolor?'\nDolor ese día: '+dolor:'')}
-async function sendObs(txt){if(navigator.share){try{await navigator.share({text:txt});return}catch(e){if(e.name==='AbortError')return}}location.href='https://wa.me/?text='+encodeURIComponent(txt)}
+async function sendObs(txts){const L=[].concat(txts);
+  if(S.topic){try{for(const t of L){const r=await fetch('https://ntfy.sh/'+S.topic,{method:'POST',body:await cifra(t)});if(!r.ok)throw 0}
+    const el=$('saved');el.textContent='Enviado';el.style.opacity=1;setTimeout(()=>{el.style.opacity=0;el.textContent='Guardado'},2000);return}catch(e){alert('No se pudo enviar. ¿Tienes internet? Prueba otra vez.');return}}
+  alert('Primero activa la app: pega tu código en Ajustes.')}
 function allObs(today,n){const r=[];for(let i=0;i<n;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;
   EX.forEach(e=>{const t=d.exn&&d.exn[e.k];if(t&&t.trim())r.push({s,n:e.n,t:t.trim()})});if(d.notas&&d.notas.trim())r.push({s,n:'Nota del día',t:d.notas.trim()})}return r}
 function drawChart(today){
@@ -407,8 +426,9 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   ['hoy','ej','prog','aj'].forEach(v=>$('v-'+v).classList.toggle('hidden',v!==b.dataset.v));
   if(b.dataset.v==='prog')renderProg();if(b.dataset.v==='aj')renderAj();if(b.dataset.v==='hoy')renderHoy();window.scrollTo(0,0)});
 const EX=[{"b": "Calentamiento", "n": "Pasar el pie por encima del step", "s": "~30 por pierna", "t": "Despacio, adelante y atrás, aguantando en una pierna. Abdomen dentro.", "u": "https://www.youtube.com/results?search_query=step%20over%20equilibrio%20una%20pierna%20ejercicio", "k": "cal_step"}, {"b": "Cadera", "n": "Abducción de pie con mini-goma en los tobillos", "s": "3 × 10", "t": "Rodilla de apoyo un poco doblada. Sube, aguanta 3 s, baja lento. Cadera nivelada, punta del pie al frente.", "u": "https://www.youtube.com/results?search_query=abducci%C3%B3n%20de%20cadera%20de%20pie%20con%20mini%20banda%20en%20tobillos", "k": "abd_pie"}, {"b": "Cadera", "n": "Patada atrás con mini-goma", "s": "3 × 10", "t": "Pierna recta «como un palo», recorrido corto, sin arquear la zona lumbar. Aprieta el glúteo arriba.", "u": "https://www.youtube.com/results?search_query=patada%20de%20gl%C3%BAteo%20de%20pie%20con%20mini%20banda%20pierna%20recta", "k": "patada"}, {"b": "Cadera", "n": "Goma en la pierna de apoyo: hacia fuera y al frente", "s": "3 × 10", "t": "La pierna de apoyo estabiliza: tobillo firme, rodilla sin irse hacia dentro.", "u": "https://www.youtube.com/results?search_query=ejercicio%20estabilidad%20pierna%20de%20apoyo%20mini%20banda%20abducci%C3%B3n%20y%20flexi%C3%B3n%20de%20cadera", "k": "apoyo"}, {"b": "Cadera", "n": "Tumbado de lado: círculos pequeños", "s": "10 + 10 por lado", "t": "Pierna de arriba un poco elevada, círculos pequeños y lentos. La cadera no se va hacia atrás.", "u": "https://www.youtube.com/results?search_query=c%C3%ADrculos%20de%20pierna%20tumbado%20de%20lado%20pilates", "k": "circulos"}, {"b": "Cadera", "n": "Almeja (clamshell)", "s": "3 × 10", "t": "Talones juntos, piernas semiflexionadas. Separa solo las rodillas sin que gire la cadera. Con o sin goma.", "u": "https://www.youtube.com/results?search_query=ejercicio%20almeja%20clamshell%20con%20banda%20el%C3%A1stica", "k": "almeja"}, {"b": "Cadera", "n": "Abducción tumbado de lado con goma", "s": "3 × 10", "t": "La pierna de arriba no se adelanta. Punta del pie al frente. Sube y baja muy lento.", "u": "https://www.youtube.com/results?search_query=abducci%C3%B3n%20de%20cadera%20tumbado%20de%20lado%20con%20banda%20el%C3%A1stica", "k": "abd_lado"}, {"b": "Cadera", "n": "Puente vértebra a vértebra", "s": "2×8 → 2×10 → 2×12", "t": "Sube y baja vértebra a vértebra, aguanta 3 s arriba sin arquear. Rodillas alineadas con la cadera.", "u": "https://www.youtube.com/results?search_query=puente%20de%20gl%C3%BAteo%20v%C3%A9rtebra%20a%20v%C3%A9rtebra%20pilates", "k": "puente"}, {"b": "Equilibrio", "n": "Bloque: subir, quedarse, paso, atrás · caminar hacia atrás", "s": "3 series", "t": "Pasa POR ENCIMA del bloque, no lo esquives. Abdomen dentro para no irte de lado.", "u": "https://www.youtube.com/results?search_query=ejercicios%20propiocepci%C3%B3n%20tobillo%20equilibrio%20una%20pierna%20step", "k": "equilibrio"}, {"b": "Saltos", "n": "Saltos: 2 piernas · al step · 1 pierna", "s": "10 · 10 · 5 por pierna", "t": "Aterriza suave. Al step subes saltando y bajas caminando. Rodilla izquierda hacia fuera. Si duele por fuera del tobillo, ese día no saltes.", "u": "https://www.youtube.com/results?search_query=saltos%20al%20caj%C3%B3n%20bajo%20principiantes%20aterrizaje%20suave%20rodilla%20alineada", "k": "saltos"}, {"b": "Abdomen", "n": "Dead bug", "s": "3 × 20 (10 por lado)", "t": "Zona lumbar pegada al suelo, brazo y pierna contrarios a la vez. Respira, nunca aguantes el aire.", "u": "https://www.youtube.com/results?search_query=dead%20bug%20ejercicio%20t%C3%A9cnica%20correcta", "k": "deadbug"}, {"b": "Abdomen", "n": "Plancha frontal y lateral", "s": "3 × 30 s · lateral ~15 s", "t": "Mejor sobre antebrazos (por la muñeca). Escápulas un poco juntas, que no caiga la cadera.", "u": "https://www.youtube.com/results?search_query=plancha%20frontal%20y%20lateral%20sobre%20antebrazos%20t%C3%A9cnica%20correcta", "k": "plancha"}, {"b": "Abdomen", "n": "Rotación con goma o polea", "s": "3 × 10", "t": "Gira el tronco, no tires con los brazos. Escápulas juntas, vuelta lo más lenta posible.", "u": "https://www.youtube.com/results?search_query=ejercicio%20le%C3%B1ador%20woodchop%20con%20banda%20el%C3%A1stica%20rotaci%C3%B3n%20de%20tronco", "k": "rotacion"}, {"b": "Espalda", "n": "Aperturas de un brazo con goma", "s": "8 por brazo", "t": "Hombros abajo, escápulas atrás. Abre un solo brazo, el otro quieto. «Quema» bien; dolor, para.", "u": "https://www.youtube.com/results?search_query=apertura%20con%20banda%20el%C3%A1stica%20un%20brazo%20retracci%C3%B3n%20escapular", "k": "aperturas"}];
-(function(){const L=document.getElementById('exList');EX.forEach(e=>{const d=document.createElement('div');d.className='ex';
-d.innerHTML=`<div class="tag">${esc(e.b)}</div><div class="h"><b>${esc(e.n)}</b><span>${esc(e.s)}</span></div><p>${esc(e.t)}</p><a href="${vurl(e)}" target="_blank" rel="noopener">▶ ${S.vlink?"Ver mi vídeo del fisio":"Ver vídeo de ejemplo"}</a>`;L.appendChild(d)})})();
+function renderEx(){const L=document.getElementById('exList');L.innerHTML='';EX.forEach(e=>{const d=document.createElement('div');d.className='ex';
+d.innerHTML=`<div class="tag">${esc(e.b)}</div><div class="h"><b>${esc(e.n)}</b><span>${esc(e.s)}</span></div><p>${esc(e.t)}</p><a href="${vurl(e)}" target="_blank" rel="noopener">▶ ${S.vlink?"Ver mi vídeo del fisio":"Ver vídeo de ejemplo"}</a>`;L.appendChild(d)})}
+renderEx();
 renderHoy();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 })();

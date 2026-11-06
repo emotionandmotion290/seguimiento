@@ -71,7 +71,8 @@ th:first-child,td:first-child{text-align:left}
 .hidden{display:none}
 .ex{padding:10px 0;border-top:1px solid var(--line)}.ex:first-of-type{border-top:0}.ex .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.ex .h b{font-size:15px}.ex .h span{font-size:12px;color:var(--text-secondary);white-space:nowrap}.ex p{margin:4px 0 8px;font-size:13px;color:var(--text-secondary)}.ex a{display:inline-block;text-decoration:none;font-size:14px;font-weight:600;color:var(--accent)}.play{flex:0 0 40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--bg);border:1px solid var(--line);color:var(--accent);font-size:16px}
 .play.nb{font:inherit;font-size:16px;color:var(--text-secondary)}.play.nb.has{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.exnote{min-height:56px;margin:0 0 8px;font-size:14px}
+.exnote{min-height:56px;margin:0 0 6px;font-size:14px}
+.exsend{font-size:13px;padding:7px 10px;margin:0 0 8px}
 .tag{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
 
 </style>
@@ -274,7 +275,9 @@ function renderHoy(){
     R.appendChild(r);const cb=r.querySelector('input');cb.checked=!!(d.ex&&d.ex[e.k]);
     cb.onchange=()=>{const x=day(cur);x.ex=x.ex||{};x.ex[e.k]=cb.checked;save()};
     const ta=document.createElement('textarea');ta.className='exnote'+(txt?'':' hidden');ta.placeholder='Observación: qué notaste, dónde duele, qué pierna…';ta.value=txt;R.appendChild(ta);
-    const nb=r.querySelector('.nb');nb.onclick=()=>{ta.classList.toggle('hidden');if(!ta.classList.contains('hidden'))ta.focus()};
+    const sb=document.createElement('button');sb.className='btn sec exsend'+(txt?'':' hidden');sb.textContent='Enviar al grupo Salud';R.appendChild(sb);
+    sb.onclick=()=>{if(ta.value.trim())sendObs(obsText({s:cur,n:e.n,t:ta.value.trim()}))};
+    const nb=r.querySelector('.nb');nb.onclick=()=>{ta.classList.toggle('hidden');sb.classList.toggle('hidden',ta.classList.contains('hidden'));if(!ta.classList.contains('hidden'))ta.focus()};
     ta.oninput=()=>{const x=day(cur);x.exn=x.exn||{};x.exn[e.k]=ta.value;nb.classList.toggle('has',!!ta.value.trim());save()};
   });
   const L=$('suppList');L.innerHTML='';
@@ -316,7 +319,9 @@ function renderProg(){
     r.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(x.name)}</span><span>${n}/${x.each?Math.ceil(7/x.each):7}</span></div><div class="bar"><i style="width:${Math.min(100,n/(x.each?Math.ceil(7/x.each):7)*100)}%"></i></div>`;SS.appendChild(r)});
   if(!S.supps.length)SS.innerHTML='<p class="note">Sin suplementos en la lista.</p>';
   drawChart(today);
-  const O=$('obsList');const obs=allObs(today,30);O.innerHTML=obs.length?obs.map(o=>`<div class="ex"><div class="tag">${fmt(o.s)} · ${esc(o.n)}</div><p style="margin:2px 0 0">${esc(o.t)}</p></div>`).join(''):'<p class="note">Aún no hay observaciones. Pulsa ✎ al lado de un ejercicio para escribir una.</p>';
+  const O=$('obsList');const obs=allObs(today,30);O.innerHTML=obs.length?obs.map((o,i)=>`<div class="ex"><div class="tag">${fmt(o.s)} · ${esc(o.n)}</div><p style="margin:2px 0 6px">${esc(o.t)}</p><button class="btn sec exsend" data-i="${i}">Enviar al grupo Salud</button></div>`).join('')+'<div class="btns" style="margin-top:10px"><button class="btn" id="sendAll">Enviar todas</button></div>':'<p class="note">Aún no hay observaciones. Pulsa ✎ al lado de un ejercicio para escribir una.</p>';
+  O.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>sendObs(obsText(obs[+b.dataset.i])));
+  const sa=$('sendAll');if(sa)sa.onclick=()=>sendObs(obs.map(obsText).join('\n\n'));
   // tabla
   let h='<tr><th>Día</th><th>Med.</th><th>Rutina</th><th>Tob.</th><th>Rod.</th><th>Muñ.</th><th>Supl.</th><th>Glucosa</th></tr>';
   for(let i=0;i<14;i++){const s=addDays(today,-i);const d=S.days[s]||{};
@@ -324,6 +329,10 @@ function renderProg(){
     h+=`<tr><td>${fmt(s)}</td><td>${d.h_med?'✓':''}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
   $('tabla').innerHTML=h;
 }
+function obsText(o){const d=S.days[o.s]||{};const e=EX.find(x=>x.n===o.n);
+  const dolor=['p_tob','p_rod','p_mun'].map((k,i)=>d[k]!=null?['tobillo','rodilla','muñeca'][i]+' '+d[k]:null).filter(Boolean).join(', ');
+  return 'Observación desde la app de seguimiento\nFecha: '+fmt(o.s)+'\n'+(e?'Ejercicio: '+e.n+' ('+e.b+', '+e.s+')'+(d.ex&&d.ex[e.k]?', hecho ese día':'')+'\n':'Nota del día\n')+'Comentario: '+o.t+(dolor?'\nDolor ese día: '+dolor:'')}
+async function sendObs(txt){if(navigator.share){try{await navigator.share({text:txt});return}catch(e){if(e.name==='AbortError')return}}location.href='https://wa.me/?text='+encodeURIComponent(txt)}
 function allObs(today,n){const r=[];for(let i=0;i<n;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;
   EX.forEach(e=>{const t=d.exn&&d.exn[e.k];if(t&&t.trim())r.push({s,n:e.n,t:t.trim()})});if(d.notas&&d.notas.trim())r.push({s,n:'Nota del día',t:d.notas.trim()})}return r}
 function drawChart(today){

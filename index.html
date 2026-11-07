@@ -114,7 +114,8 @@ th:first-child,td:first-child{text-align:left}
   </div>
   <div class="card">
     <h2>Rutina del fisio <span id="tocaHoy" class="note"></span></h2>
-    <p class="note" style="margin:-4px 0 6px">Marca cada ejercicio al hacerlo. ✎ para escribir una observación, ▶ para ver el vídeo.</p>
+    <p class="note" id="rutHint" style="margin:-4px 0 6px">Marca cada ejercicio al hacerlo. ✎ para escribir una observación, ▶ para ver el vídeo.</p>
+    <div id="rutOff" class="hidden"><p class="note" style="margin:0 0 8px">Hoy no toca rutina.</p><button class="btn sec exsend" id="rutShow">Mostrar la rutina igualmente</button></div>
     <div id="rutList"></div>
     <div class="row"><label for="r_fisio">Sesión con el fisio hoy</label><input type="checkbox" id="r_fisio"></div>
   </div>
@@ -293,6 +294,8 @@ function renderHoy(){
   $('g_val').value=d.g_val??'';$('g_mom').value=d.g_mom||'';$('notas').value=d.notas||'';
   const wd=parse(cur).getDay();
   $('tocaHoy').textContent=S.rutDays.includes(wd)?'· toca hoy':'';
+  const showR=S.rutDays.includes(wd)||rutDone(d)||renderHoy.force===cur;
+  $('rutList').classList.toggle('hidden',!showR);$('rutHint').classList.toggle('hidden',!showR);$('rutOff').classList.toggle('hidden',showR);
   const R=$('rutList');R.innerHTML='';let lastB='';
   EX.forEach((e,i)=>{
     if(e.b!==lastB){const t=document.createElement('div');t.className='tag';t.style.margin='10px 0 2px';t.textContent=e.b;R.appendChild(t);lastB=e.b}
@@ -330,6 +333,7 @@ $('notas').oninput=()=>{day(cur).notas=$('notas').value;save()};
 $('actBtn').onclick=()=>{try{activar($('actCode').value);renderHoy();renderEx();alert('Listo: ya tienes tus vídeos y el envío directo.')}catch(e){alert('Ese código no es válido. Cópialo entero.')}};
 document.addEventListener('click',ev=>{const a=ev.target.closest('a[data-k]');if(!a||!S.topic)return;ev.preventDefault();playEx(a.dataset.k,a.dataset.n).then(ok=>{if(!ok)alert('No pude abrir el vídeo.')})});
 $('vclose').onclick=()=>{const v=$('vplayer');v.pause();v.removeAttribute('src');v.load();$('vbox').classList.add('hidden')};
+$('rutShow').onclick=()=>{renderHoy.force=cur;renderHoy()};
 $('fecha').onchange=()=>{if($('fecha').value){cur=$('fecha').value;renderHoy()}};
 $('prev').onclick=()=>{cur=addDays(cur,-1);renderHoy()};
 $('next').onclick=()=>{cur=addDays(cur,1);renderHoy()};

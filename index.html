@@ -103,6 +103,11 @@ th:first-child,td:first-child{text-align:left}
   </div>
 
   <div class="card">
+    <h2>Plan de hoy</h2>
+    <div id="planHoy" style="font-size:15px"></div>
+  </div>
+
+  <div class="card">
     <h2>Al despertar</h2>
     <div class="row"><label for="h_med">Meditación<small>40 minutos, lo primero de la mañana</small></label><input type="checkbox" id="h_med"></div>
   </div>
@@ -118,6 +123,13 @@ th:first-child,td:first-child{text-align:left}
     <div id="rutOff" class="hidden"><p class="note" style="margin:0 0 8px">Hoy no toca rutina.</p><button class="btn sec exsend" id="rutShow">Mostrar la rutina igualmente</button></div>
     <div id="rutList"></div>
     <div class="row"><label for="r_fisio">Sesión con el fisio hoy</label><input type="checkbox" id="r_fisio"></div>
+  </div>
+
+  <div class="card" id="kaCard">
+    <h2>Knee Ability <span id="kaToca" class="note"></span></h2>
+    <p class="note" id="kaHint" style="margin:-4px 0 6px">Los vídeos están en tu app de Knee Ability. Regla: hasta 3/10 de dolor.</p>
+    <div id="kaList"></div>
+    <div id="kaOff" class="hidden"><p class="note" style="margin:0 0 8px">Hoy no toca Knee Ability.</p><button class="btn sec exsend" id="kaShow">Mostrar igualmente</button></div>
   </div>
 
   <div class="card">
@@ -149,7 +161,8 @@ th:first-child,td:first-child{text-align:left}
   <div class="card">
     <h2>Esta semana</h2>
     <div class="tiles">
-      <div class="tile"><b id="t_rut">0/3</b><span>días de rutina</span></div>
+      <div class="tile"><b id="t_rut">0/3</b><span>rutina del fisio</span></div>
+      <div class="tile"><b id="t_ka">0/2</b><span>Knee Ability</span></div>
       <div class="tile"><b id="t_med">0/7</b><span>meditación</span></div>
       <div class="tile"><b id="t_cam">0</b><span>caminatas</span></div>
       <div class="tile"><b id="t_sup">–</b><span>suplementos</span></div>
@@ -260,7 +273,7 @@ async function cifra(txt){const pk=await crypto.subtle.importKey('spki',Uint8Arr
   const k=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt']);const i=crypto.getRandomValues(new Uint8Array(12));
   const c=await crypto.subtle.encrypt({name:'AES-GCM',iv:i},k,new TextEncoder().encode(txt));const raw=await crypto.subtle.exportKey('raw',k);
   return JSON.stringify({k:b64(await crypto.subtle.encrypt({name:'RSA-OAEP'},pk,raw)),i:b64(i),c:b64(c)})}
-const VBLOB='yBPeQkBx6Q2CiS9P.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';let VM=null;
+const VBLOB='2fC/D9CcnJEiICES.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';let VM=null;let KA=[];
 async function loadVM(){if(VM||!S.topic)return VM;const [i,c]=VBLOB.split('.').map(x=>Uint8Array.from(atob(x),y=>y.charCodeAt(0)));
   const k=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode(S.topic)),'AES-GCM',false,['decrypt']);
   VM=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:i},k,c)));return VM}
@@ -281,7 +294,8 @@ const day=s=>S.days[s]||(S.days[s]={});
 
 const CHK=['h_med','r_fisio','h_com','h_cen','h_cena'];
 const PAIN=[['p_tob','v_tob'],['p_rod','v_rod'],['p_mun','v_mun']];
-const rutDone=d=>!!(d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd||(d.ex&&Object.values(d.ex).some(Boolean))));
+const rutDone=d=>!!(d&&(d.r_cal||d.r_cad||d.r_eq||d.r_abd||(d.ex&&Object.entries(d.ex).some(([k,v])=>v&&!k.startsWith('ka_')))));
+const kaDone=d=>!!(d&&d.ex&&Object.entries(d.ex).some(([k,v])=>v&&k.startsWith('ka_')));
 
 function lastTaken(id,before){for(let i=1;i<=30;i++){const s=addDays(before,-i);const d=S.days[s];if(d&&d.supp&&d.supp[id])return i}return null}
 function dueSupp(x,s){if(!x.each)return true;const l=lastTaken(x.id,s);return l===null||l>=x.each}
@@ -294,7 +308,18 @@ function renderHoy(){
   $('g_val').value=d.g_val??'';$('g_mom').value=d.g_mom||'';$('notas').value=d.notas||'';
   const wd=parse(cur).getDay();
   $('tocaHoy').textContent=S.rutDays.includes(wd)?'· toca hoy':'';
-  const showR=S.rutDays.includes(wd)||rutDone(d)||renderHoy.force===cur;
+  const kaDay=(S.kaDays||[2,4]).includes(wd),fiDay=S.rutDays.includes(wd);
+  $('planHoy').innerHTML=[fiDay?'Rutina del fisio':'',kaDay&&KA.length?'Knee Ability':'',(!fiDay&&!(kaDay&&KA.length))?'Descanso de ejercicios: solo caminar':''].filter(Boolean).map(x=>'• '+x).join('<br>')+'<br><span class="note">Todos los días: meditación, suplementos y caminar tras comer y cenar.</span>';
+  const showK=KA.length&&(kaDay||kaDone(d)||renderHoy.forceK===cur);
+  $('kaCard').classList.toggle('hidden',!KA.length);$('kaList').classList.toggle('hidden',!showK);$('kaHint').classList.toggle('hidden',!showK);$('kaOff').classList.toggle('hidden',!!showK);$('kaToca').textContent=kaDay?'· toca hoy':'';
+  const K=$('kaList');K.innerHTML='';KA.forEach((e,i)=>{const r=document.createElement('div');r.className='row';const id='ka_'+i,txt=(d.exn&&d.exn[e.k])||'';
+    r.innerHTML=`<label for="${id}">${esc(e.n)}<small>${esc([e.s,e.t].filter(Boolean).join(' · '))}</small></label><button class="play nb${txt?' has':''}" aria-label="Observación">✎</button><input type="checkbox" id="${id}">`;K.appendChild(r);
+    const cb=r.querySelector('input');cb.checked=!!(d.ex&&d.ex[e.k]);cb.onchange=()=>{const x=day(cur);x.ex=x.ex||{};x.ex[e.k]=cb.checked;save()};
+    const ta=document.createElement('textarea');ta.className='exnote'+(txt?'':' hidden');ta.placeholder='Observación: qué notaste, dónde duele, qué pierna…';ta.value=txt;K.appendChild(ta);
+    const sb=document.createElement('button');sb.className='btn sec exsend'+(txt?'':' hidden');sb.textContent='Enviar al grupo Salud';K.appendChild(sb);sb.onclick=()=>{if(ta.value.trim())sendObs(obsText({s:cur,n:e.n,t:ta.value.trim()}))};
+    const nb=r.querySelector('.nb');nb.onclick=()=>{ta.classList.toggle('hidden');sb.classList.toggle('hidden',ta.classList.contains('hidden'));if(!ta.classList.contains('hidden'))ta.focus()};
+    ta.oninput=()=>{const x=day(cur);x.exn=x.exn||{};x.exn[e.k]=ta.value;nb.classList.toggle('has',!!ta.value.trim());save()}});
+  const showR=fiDay||rutDone(d)||renderHoy.force===cur;
   $('rutList').classList.toggle('hidden',!showR);$('rutHint').classList.toggle('hidden',!showR);$('rutOff').classList.toggle('hidden',showR);
   const R=$('rutList');R.innerHTML='';let lastB='';
   EX.forEach((e,i)=>{
@@ -330,9 +355,10 @@ PAIN.forEach(([p,v])=>{$(p).oninput=()=>{day(cur)[p]=+$(p).value;$(v).textConten
 $('g_val').onchange=()=>{const x=day(cur);x.g_val=$('g_val').value===''?null:+$('g_val').value;save()};
 $('g_mom').onchange=()=>{day(cur).g_mom=$('g_mom').value;save()};
 $('notas').oninput=()=>{day(cur).notas=$('notas').value;save()};
-$('actBtn').onclick=()=>{try{activar($('actCode').value);renderHoy();renderEx();alert('Listo: ya tienes tus vídeos y el envío directo.')}catch(e){alert('Ese código no es válido. Cópialo entero.')}};
+$('actBtn').onclick=()=>{try{activar($('actCode').value);renderHoy();renderEx();loadVM().then(v=>{if(v&&v._ka){KA=v._ka;renderHoy()}});alert('Listo: ya tienes tus vídeos y el envío directo.')}catch(e){alert('Ese código no es válido. Cópialo entero.')}};
 document.addEventListener('click',ev=>{const a=ev.target.closest('a[data-k]');if(!a||!S.topic)return;ev.preventDefault();playEx(a.dataset.k,a.dataset.n).then(ok=>{if(!ok)alert('No pude abrir el vídeo.')})});
 $('vclose').onclick=()=>{const v=$('vplayer');v.pause();v.removeAttribute('src');v.load();$('vbox').classList.add('hidden')};
+$('kaShow').onclick=()=>{renderHoy.forceK=cur;renderHoy()};
 $('rutShow').onclick=()=>{renderHoy.force=cur;renderHoy()};
 $('fecha').onchange=()=>{if($('fecha').value){cur=$('fecha').value;renderHoy()}};
 $('prev').onclick=()=>{cur=addDays(cur,-1);renderHoy()};
@@ -341,10 +367,10 @@ $('next').onclick=()=>{cur=addDays(cur,1);renderHoy()};
 function weekStart(s){const d=parse(s);const k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return iso(d)}
 function renderProg(){
   const today=iso(new Date());
-  const ws=weekStart(today);let rut=0,cam=0,med=0,sTot=0,sOk=0;
-  for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0);if(d.h_med)med++}
+  const ws=weekStart(today);let rut=0,cam=0,med=0,kad=0,sTot=0,sOk=0;
+  for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today)break;const d=S.days[s];if(rutDone(d))rut++;if(kaDone(d))kad++;if(d){cam+=(d.h_com?1:0)+(d.h_cen?1:0);if(d.h_med)med++}
     S.supps.forEach(x=>{const tk=!!(d&&d.supp&&d.supp[x.id]);if(!x.each||tk||dueSupp(x,s))sTot++;if(tk)sOk++})}
-  $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_cam').textContent=cam;$('t_med').textContent=med+'/7';
+  $('t_rut').textContent=rut+'/'+S.rutDays.length;$('t_ka').textContent=kad+'/'+(S.kaDays||[2,4]).length;$('t_cam').textContent=cam;$('t_med').textContent=med+'/7';
   $('t_sup').textContent=sTot?Math.round(100*sOk/sTot)+'%':'–';
   // suplementos 7 días
   const SS=$('suppStats');SS.innerHTML='';
@@ -363,7 +389,7 @@ function renderProg(){
     h+=`<tr><td>${fmt(s)}</td><td>${d.h_med?'✓':''}</td><td>${rutDone(d)?'✓':(d.r_fisio?'fisio':'')}</td><td>${d.p_tob??''}</td><td>${d.p_rod??''}</td><td>${d.p_mun??''}</td><td>${sup}</td><td>${d.g_val??''}</td></tr>`}
   $('tabla').innerHTML=h;
 }
-function obsText(o){const d=S.days[o.s]||{};const e=EX.find(x=>x.n===o.n);
+function obsText(o){const d=S.days[o.s]||{};const e=EX.concat(KA).find(x=>x.n===o.n);
   const dolor=['p_tob','p_rod','p_mun'].map((k,i)=>d[k]!=null?['tobillo','rodilla','muñeca'][i]+' '+d[k]:null).filter(Boolean).join(', ');
   return 'Observación desde la app de seguimiento\nFecha: '+fmt(o.s)+'\n'+(e?'Ejercicio: '+e.n+' ('+e.b+', '+e.s+')'+(d.ex&&d.ex[e.k]?', hecho ese día':'')+'\n':'Nota del día\n')+'Comentario: '+o.t+(dolor?'\nDolor ese día: '+dolor:'')}
 async function sendObs(txts){const L=[].concat(txts);
@@ -371,7 +397,7 @@ async function sendObs(txts){const L=[].concat(txts);
     const el=$('saved');el.textContent='Enviado';el.style.opacity=1;setTimeout(()=>{el.style.opacity=0;el.textContent='Guardado'},2000);return}catch(e){alert('No se pudo enviar. ¿Tienes internet? Prueba otra vez.');return}}
   alert('Primero activa la app: pega tu código en Ajustes.')}
 function allObs(today,n){const r=[];for(let i=0;i<n;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;
-  EX.forEach(e=>{const t=d.exn&&d.exn[e.k];if(t&&t.trim())r.push({s,n:e.n,t:t.trim()})});if(d.notas&&d.notas.trim())r.push({s,n:'Nota del día',t:d.notas.trim()})}return r}
+  EX.concat(KA).forEach(e=>{const t=d.exn&&d.exn[e.k];if(t&&t.trim())r.push({s,n:e.n,t:t.trim()})});if(d.notas&&d.notas.trim())r.push({s,n:'Nota del día',t:d.notas.trim()})}return r}
 function drawChart(today){
   const W=Math.min(600,document.querySelector('main').clientWidth-30),H=200,m={l:26,r:52,t:10,b:24};
   const days=[];for(let i=29;i>=0;i--)days.push(addDays(today,-i));
@@ -423,11 +449,11 @@ function addEditRow(s){
 $('addSupp').onclick=()=>addEditRow({});
 $('saveSupp').onclick=()=>{S.supps=[...document.querySelectorAll('#suppEdit .supp-edit')].map(r=>{const v=r.querySelectorAll('input');const o=S.supps.find(x=>x.id===r.dataset.id);const n={id:r.dataset.id,name:v[0].value.trim(),dose:v[1].value.trim(),when:v[2].value.trim()};if(o&&o.each)n.each=o.each;return n}).filter(s=>s.name);save();renderAj()};
 $('copyWeek').onclick=async()=>{
-  const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,cam=0,med=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
-  for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;if(d.h_med)med++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
+  const today=iso(new Date());let lines=['Resumen semana (hasta '+fmt(today)+'):'];let rut=0,kad=0,cam=0,med=0;const pains={p_tob:[],p_rod:[],p_mun:[]};const sup={};
+  for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(!d)continue;if(rutDone(d))rut++;if(kaDone(d))kad++;if(d.h_med)med++;cam+=(d.h_com?1:0)+(d.h_cen?1:0);
     for(const k in pains)if(d[k]!=null)pains[k].push(d[k]);S.supps.forEach(x=>{if(d.supp&&d.supp[x.id])sup[x.name]=(sup[x.name]||0)+1})}
   const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+' (máx '+Math.max(...a)+')':'sin datos';
-  lines.push('1. Rutina: '+rut+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,'3b. Meditación: '+med+'/7 días',
+  lines.push('1. Rutina del fisio: '+rut+' días; Knee Ability: '+kad+' días','2. Dolor medio: tobillo '+avg(pains.p_tob)+', rodilla '+avg(pains.p_rod)+', muñeca '+avg(pains.p_mun),'3. Caminatas tras comidas: '+cam,'3b. Meditación: '+med+'/7 días',
     '4. Suplementos: '+(S.supps.map(x=>x.name+' '+(sup[x.name]||0)+'/'+(x.each?Math.ceil(7/x.each):7)).join(', ')||'ninguno'));
   const gl=[];for(let i=0;i<7;i++){const s=addDays(today,-i);const d=S.days[s];if(d&&d.g_val)gl.push(fmt(s)+' '+d.g_val+(d.g_mom?' ('+d.g_mom+')':''))}
   if(gl.length)lines.push('5. Glucosa: '+gl.join('; '));
@@ -448,6 +474,7 @@ function renderEx(){const L=document.getElementById('exList');L.innerHTML='';EX.
 d.innerHTML=`<div class="tag">${esc(e.b)}</div><div class="h"><b>${esc(e.n)}</b><span>${esc(e.s)}</span></div><p>${esc(e.t)}</p><a data-k="${e.k}" data-n="${esc(e.n)}" href="${vurl(e)}" target="_blank" rel="noopener">▶ ${S.vlink?"Ver mi vídeo del fisio":"Ver vídeo de ejemplo"}</a>`;L.appendChild(d)})}
 renderEx();
 renderHoy();
+if(S.topic)loadVM().then(v=>{if(v&&v._ka){KA=v._ka;renderHoy()}}).catch(()=>{});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 })();
 </script>
